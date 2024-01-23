@@ -2,32 +2,6 @@
 
     net start mpssvc
 
-    reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsFirewall\PublicProfile /V EnableFirewall /T REG_DWORD /D 1 /F 
-    reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsFirewall\PrivateProfile /V EnableFirewall /T REG_DWORD /D 1 /F 
-    reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsFirewall\DomainProfile /V EnableFirewall /T REG_DWORD /D 1 /F 
-
-    reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsFirewall\PublicProfile /V DefaultInboundAction /T REG_DWORD /D 1 /F 
-    reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsFirewall\PrivateProfile /V DefaultInboundAction /T REG_DWORD /D 1 /F 
-    reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsFirewall\DomainProfile /V DefaultInboundAction /T REG_DWORD /D 1 /F
-
-    reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsFirewall\PublicProfile /V DefaultOutboundAction /T REG_DWORD /D 0 /F 
-    reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsFirewall\PrivateProfile /V DefaultOutboundAction /T REG_DWORD /D 0 /F 
-    reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsFirewall\DomainProfile /V DefaultOutboundAction /T REG_DWORD /D 0 /F
-
-    reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsFirewall\PublicProfile /V DisableNotifications /T REG_DWORD /D 1 /F 
-    reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsFirewall\PrivateProfile /V DisableNotifications /T REG_DWORD /D 1 /F 
-    reg add HKLM\SOFTWARE\Policies\Microsoft\WindowsFirewall\DomainProfile /V DisableNotifications /T REG_DWORD /D 1 /F
-
-
-    Set-NetFirewallProfile -Profile Domain -Enabled True -DefaultInboundAction Block -DefaultOutboundAction Block -NotifyOnListen False -AllowLocalFirewallRules True -AllowLocalIPsecRules True -LogFileName %SYSTEMROOT%\System32\logfiles\firewall\domainfw.log -LogMaxSizeKilobytes 16384 -LogBlocked True -LogAllowed True
-
-
-    Set-NetFirewallProfile -Profile Public -Enabled True -DefaultInboundAction Block -DefaultOutboundAction Block -NotifyOnListen True -AllowLocalFirewallRules False -AllowLocalIPsecRules False -LogFileName %SYSTEMROOT%\System32\logfiles\firewall\publicfw.log -LogMaxSizeKilobytes 16384 -LogBlocked True -LogAllowed True
-
-
-    Set-NetFirewallProfile -Profile Private -Enabled True -DefaultInboundAction Block -DefaultOutboundAction Block -NotifyOnListen False -AllowLocalFirewallRules True -AllowLocalIPsecRules True -LogFileName %SYSTEMROOT%\System32\logfiles\firewall\privatefw.log -LogMaxSizeKilobytes 16384 -LogBlocked True -LogAllowed True
-    
-
     netsh advfirewall firewall set multicastbroadcastresponse disable
     netsh advfirewall firewall set multicastbroadcastresponse mode=disable profile=all
 
@@ -49,8 +23,6 @@
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v AllowTSConnections /t REG_DWORD /d 1 /f
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v UserAuthentication /t REG_DWORD /d 1 /f
     REG ADD "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
-    reg ADD "HKLM\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v PortNumber /t REG_DWORD /d 6969 /f
-    netsh advfirewall firewall set rule group="remote desktop" new enable=yes
 
     reg add "HKLM\SYSTEM\ControlSet001\Control\Remote Assistance" /V CreateEncryptedOnlyTickets /T REG_DWORD /D 1 /F 
     reg add "HKLM\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /V fDisableEncryption /T REG_DWORD /D 0 /F
@@ -61,10 +33,6 @@
 
 
     reg ADD "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" /v fResetBroken /t REG_DWORD /d 1 /F
-    reg ADD "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" /v MaxConnectionTime /t REG_DWORD /d 10000 /F
-
-
-
 
     sc.exe config lanmanworkstation depend= bowser/mrxsmb20/nsi 
     sc.exe config mrxsmb10 start= disabled
@@ -75,23 +43,21 @@
     Set-SmbServerConfiguration -EnableSMB2Protocol $true -Force
     Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" SMB2 -Type DWORD -Value 1 -Force
 
-
     net share C:\ /delete
+    net share C:\Windows /delete
 
-
-
-
+    #Remove all exclusions
     Set-MpPreference -ExclusionPath '<' -ExclusionProcess '<' -ExclusionExtension '<'
     Remove-MpPreference -ExclusionPath '<' -ExclusionProcess '<' -ExclusionExtension '<'
 
-
+    #Select Default Action Array Action 3 = Remove
     Set-MpPreference -ThreatIDDefaultAction_Ids "0000000000" -ThreatIDDefaultAction_Actions "3"
-    
-
+    #Signature Scanning?
     Set-MpPreference -SignatureScheduleDay Everyday -SignatureScheduleTime 120 -CheckForSignaturesBeforeRunningScan $true -DisableArchiveScanning $false -DisableAutoExclusions $false -DisableBehaviorMonitoring $false -DisableBlockAtFirstSeen $false -DisableCatchupFullScan $false -DisableCatchupQuickScan $false -DisableEmailScanning $false -DisableIOAVProtection $false -DisableIntrusionPreventionSystem $false -DisablePrivacyMode $false -DisableRealtimeMonitoring $false -DisableRemovableDriveScanning $false -DisableRestorePoint $false -DisableScanningMappedNetworkDrivesForFullScan $false -DisableScanningNetworkFiles $false -DisableScriptScanning $false -HighThreatDefaultAction Remove -LowThreatDefaultAction Quarantine -MAPSReporting 0 -ModerateThreatDefaultAction Quarantine -PUAProtection Enabled -QuarantinePurgeItemsAfterDelay 1 -RandomizeScheduleTaskTimes $false -RealTimeScanDirection 0 -RemediationScheduleDay 0 -RemediationScheduleTime 100 -ReportingAdditionalActionTimeOut 5 -ReportingCriticalFailureTimeOut 6 -ReportingNonCriticalTimeOut 7 -ScanAvgCPULoadFactor 50 -ScanOnlyIfIdleEnabled $false -ScanPurgeItemsAfterDelay 15 -ScanScheduleDay 0 -ScanScheduleQuickScanTime 200 -ScanScheduleTime 200 -SevereThreatDefaultAction Remove -SignatureAuGracePeriod 30 -SignatureUpdateCatchupInterval 1 -SignatureUpdateInterval 1 -SubmitSamplesConsent 2 -UILockdown $false -UnknownThreatDefaultAction Quarantine -Force
 
-
+    #Start Defender
     start-service WinDefend
+    #Set Defender Policies
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "DisableAntiSpyware" /t REG_DWORD /d 0 /f
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "DisableAntiVirus" /t REG_DWORD /d 0 /f
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender" /v "ServiceKeepAlive" /t REG_DWORD /d 1 /f
@@ -106,16 +72,12 @@
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" /v "DisableBlockAtFirstSeen" /t REG_DWORD /d 1 /f
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" /v "SpynetReporting" /t REG_DWORD /d 0 /f
 
-
     reg ADD "HKLM\SOFTWARE\Microsoft\Windows Defender\Features" /v TamperProtection /t REG_DWORD /d 5 /F
 
-
-
-
-
+    #Start Windows Update Service and set startup type to auto
     Set-Service -Name wuauserv -StartupType Automatic -Status Running
 
-
+    #Windows Update registry keys
     reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU /v AutoInstallMinorUpdates /t REG_DWORD /d 1 /f
     reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU /v NoAutoUpdate /t REG_DWORD /d 0 /f
     reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU /v AUOptions /t REG_DWORD /d 4 /f
@@ -129,46 +91,40 @@
     reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update" /V IncludeRecommendedUpdates /T REG_DWORD /D 1 /F
     reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update" /V ScheduledInstallTime /T REG_DWORD /D 22 /F
 
-
+    #Automatic Updates for non-domain computers
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v "DeferFeatureUpdates" /t REG_DWORD /d 0 /f
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" /v "DeferQualityUpdates" /t REG_DWORD /d 0 /f
 
-
+    #Delete netlogon fullsecurechannelprotection then add a new key with it enabled
     Remove-ItemProperty -path 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters' -Name 'FullSecureChannelProtection' -Force
     New-Item -path 'HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters' -Name 'FullSecureChannelProtection' -Value 1 -ItemType "DWORD" -Force 
 
-
-
-
-
+    #Disable the print spooler and make it never start
     Get-Service -Name Spooler | Stop-Service -Force
     Set-Service -Name Spooler -StartupType Disabled -Status Stopped
 
-
+    #dism = Deployment Image Servicing and Management
+    #disable insecure and unnecessary features
     dism /online /disable-feature /featurename:TFTP /NoRestart
-
-
     dism /online /disable-feature /featurename:TelnetClient /NoRestart
     dism /online /disable-feature /featurename:TelnetServer /NoRestart
-
-
     dism /online /disable-feature /featurename:"SMB1Protocol" /NoRestart
-
-
-
+    
+    #Disables editing registry remotely
     Get-Service -Name RemoteRegistry | Stop-Service -Force
     Set-Service -Name RemoteRegistry -StartupType Disabled -Status Stopped -Confirm $false
-
-
+    
+    #Disable Powershell Remoting
     Disable-PSRemoting -Force
     Get-Service -Name WinRM | Stop-Service -Force
     Set-Service -Name WinRM -StartupType Disabled -Status Stopped -Confirm $false
 
+    #Removing all listeners for WS-Management service
     Remove-Item -Path WSMan:\Localhost\listener\listener* -Recurse
+    #Require interactie logon for true admin connections (RDP, SSH, etc.)
     Set-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\policies\system -Name LocalAccountTokenFilterPolicy -Value 0
 
-
-
+    #Remove all startup or shutdown scripts
     remove-item -Force 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup\*'
     remove-item -Force 'C:\autoexec.bat'
     remove-item -Force "C:\Users\*\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\*"
@@ -181,74 +137,76 @@
     reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /VA /F
     reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce /VA /F
 
-
+    #Remove all custom password filters
     REG delete "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v "Notification Packages"  /f
 
-
-
+    #Remove sticky keys
     reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\sethc.exe" /v Debugger /f
     TAKEOWN /F C:\Windows\System32\sethc.exe /A
     ICACLS C:\Windows\System32\sethc.exe /grant administrators:F
     del C:\Windows\System32\sethc.exe -Force
 
-
+    #Delete utility manager (backdoor)
     TAKEOWN /F C:\Windows\System32\Utilman.exe /A
     ICACLS C:\Windows\System32\Utilman.exe /grant administrators:F
     del C:\Windows\System32\Utilman.exe -Force
 
-
+    #Delete on screen keyboard (backdoor)
     TAKEOWN /F C:\Windows\System32\osk.exe /A
     ICACLS C:\Windows\System32\osk.exe /grant administrators:F
     del C:\Windows\System32\osk.exe -Force
 
-
+    #Delete narrator (backdoor)
     TAKEOWN /F C:\Windows\System32\Narrator.exe /A
     ICACLS C:\Windows\System32\Narrator.exe /grant administrators:F
     del C:\Windows\System32\Narrator.exe -Force
 
-
+    #Delete magnify (backdoor)
     TAKEOWN /F C:\Windows\System32\Magnify.exe /A
     ICACLS C:\Windows\System32\Magnify.exe /grant administrators:F
     del C:\Windows\System32\Magnify.exe -Force
 
-
+    #Delete ScheduledTasks
     Get-ScheduledTask | Unregister-ScheduledTask -Confirm:$false
     
-
+    #Disable Guest user
     net user Guest /active:no
 
-
+    #Set Account Security Parameters
     net accounts /FORCELOGOFF:30 /MINPWLEN:8 /MAXPWAGE:30 /MINPWAGE:2 /UNIQUEPW:24 /lockoutwindow:30 /lockoutduration:30 /lockoutthreshold:30
 
-
-    Set-ADDomainMode -identity $env:USERDNSDOMAIN -DomainMode Windows2016Domain 
+    #Sets the current domain functional level to Windows2016Domain
+    Set-ADDomainMode -identity $env:USERDNSDOMAIN -DomainMode Windows2016Domain
+    #Get forest name
     $Forest = Get-ADForest
+    #Sets the current forest functional level to Windows2016Forest
     Set-ADForestMode -Identity $Forest -Server $Forest.SchemaMaster -ForestMode Windows2016Forest 
 
-
+    #Set Data Execution Prevention (DEP) to be always on
     bcdedit.exe /set "{current}" nx AlwaysOn
 
-
+    #Make sure DEP is allowed (Triple Negative)
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Explorer" /v "NoDataExecutionPrevention" /t REG_DWORD /d 0 /f
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "DisableHHDEP" /t REG_DWORD /d 0 /f
 
-
+    #Only privileged groups can add or delete printer drivers
     reg ADD "HKLM\SYSTEM\CurrentControlSet\Control\Print\Providers\LanMan Print Services\Servers" /v AddPrinterDrivers /t REG_DWORD /d 1 /f
 
-
+    #Don't execute autorun commands
     reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoAutorun" /t REG_DWORD /d 1 /f
     reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v "NoDriveTypeAutoRun" /t REG_DWORD /d 255 /f
 
-
+    #Don't allow empty password login
     reg ADD "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f
 
-
+    #Only local sessions can control the CD/Floppy
     reg ADD "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AllocateCDRoms /t REG_DWORD /d 1 /f
     
-
+    #Don't automatically logon as admin remotely
     reg ADD "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon /t REG_DWORD /d 0 /f
 
-
+    #Set audit policies
+    #Enable logging for EVERYTHING
     auditpol /set /category:* /success:enable
     auditpol /set /category:* /failure:enable
     auditpol /set /subcategory:"Security State Change" /success:enable /failure:enable
@@ -310,33 +268,46 @@
     auditpol /set /subcategory:"Kerberos Service Ticket Operations" /success:enable /failure:enable
     auditpol /set /subcategory:"Other Account Logon Events" /success:enable /failure:enable
     auditpol /set /subcategory:"Kerberos Authentication Service" /success:enable /failure:enable
- 
 
-
+    #Flush DNS Lookup Cache
     ipconfig /flushdns
-    
 
-
+    #Enable UAC popups if software trys to make changes
     reg ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableLUA /t REG_DWORD /d 1 /f
 
-    reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /V ConsentPromptBehaviorAdmin /T REG_DWORD /D 1 /F 
-    reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /V ConsentPromptBehaviorUser /T REG_DWORD /D 0 /F 
-    reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /V FilterAdministratorToken /T REG_DWORD /D 1 /F 
+    #Require admin authentication for operations that requires elevation of privileges
+    reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /V ConsentPromptBehaviorAdmin /T REG_DWORD /D 1 /F
+    #Does not allow user to run elevates privileges
+    reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /V ConsentPromptBehaviorUser /T REG_DWORD /D 0 /F
+    #Built-in administrator account is placed into Admin Approval Mode, admin approval is required for administrative tasks
+    reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /V FilterAdministratorToken /T REG_DWORD /D 1 /F
+    #https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-gpsb/932a34b5-48e7-44c0-b6d2-a57aadef1799
+    #WHY?
     reg add HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /V EnableVirtualization /T REG_DWORD /D 1 /F 
 
+    #Disable camera on lockscreen
     reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization /v NoLockScreenCamera /T REG_DWORD /D 1 /F
+    #Sideshow will never start
     reg add HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization /v NoLockScreenSlideshow /T REG_DWORD /D 1 /F
+    #Don't allow speech services
     reg add HKLM\SOFTWARE\Policies\Microsoft\InputPersonalization /v AllowInputPersonalization /T REG_DWORD /D 0 /F
 
-
+    #Disable Multiple Avenues for Backdoors
     reg ADD "HKU\.DEFAULT\Control Panel\Accessibility\StickyKeys" /v Flags /t REG_SZ /d 506 /f
+    reg ADD "HKU\.DEFAULT\Control Panel\Accessibility\Keyboard Response" /v Flags /t REG_SZ /d 122 /f
+    reg ADD "HKU\.DEFAULT\Control Panel\Accessibility\ToggleKeys" /v Flags /t REG_SZ /d 58 /f
 
-
+    #Don't allow Windows Search and Cortana to search cloud sources (OneDrive, SharePoint, etc.)
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowCloudSearch" /t REG_DWORD /d 0 /f
+    #Disable Cortana
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowCortana" /t REG_DWORD /d 0 /f
+    #Disable Cortana when locked
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowCortanaAboveLock" /t REG_DWORD /d 0 /f
+    #Disable location permissions for windows search
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "AllowSearchToUseLocation" /t REG_DWORD /d 0 /f
+    #Don't let windows search the web
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "ConnectedSearchUseWeb" /t REG_DWORD /d 0 /f
+    #Don't let windows search the web
     reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search" /v "DisableWebSearch" /t REG_DWORD /d 1 /f
 
 
