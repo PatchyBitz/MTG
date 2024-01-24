@@ -1,5 +1,4 @@
 import os
-import paramiko
 import yaml
 from wrapper import *
 from datetime import datetime
@@ -13,7 +12,7 @@ def Root_Password_Changes(box):
     root_password = boxes[box][1]
     default_password = boxes[box][0]
     command = f'passwd root {root_password}'
-    run_ssh_command(box,default_password,command,box)
+    run_ssh_command(box,default_password,command)
 
 def User_Password_Changes(box):
     user_password = boxes[box][2]
@@ -78,7 +77,7 @@ def change_sysctl_settings(box):
     default_password = boxes[box][0]
     for setting, value in sysctl_settings_entry.items():
         command = f"echo '{setting} = {value}' >> /etc/sysctl.d/sysctl.conf"
-        run_ssh_command(box,default_password,box,command)
+        run_ssh_command(box,default_password,command)
         command="sysctl -p"
         run_ssh_command(box,default_password,command)
 
