@@ -10,8 +10,9 @@ shred -u “$0”
 # VARIABLES
 TEAM_NUMBER="10"  # Change this to your desired team number
 # Passwords charset is a-zA-Z0-9.*-?
-NEW_PASSWORD="your_dashboard_password"
-API_PASSWORD="your_api_password"
+echo 'Password charset is a-zA-Z0-9.*-?'
+read -p 'Enter new Web UI password: ' NEW_PASSWORD
+read -p 'Enter new API password: ' API_PASSWORD
 DNS="10.${TEAM_NUMBER}0.${TEAM_NUMBER}0.10"
 
 # NETWORKING
