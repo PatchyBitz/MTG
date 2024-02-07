@@ -6,7 +6,7 @@ import utils.iptables as iptables
 from utils.passgen import genPassword
 from getpass import getpass
 import hashlib
-
+import time
 boxes = {}
 config_path = 'config.yml'
 # passwordFunc = lambda x: 'default'
@@ -34,6 +34,7 @@ def Root_Password_Changes(box):
         open(f"boxdata/{box}/changedpassword", "w").close()
 
 def User_Password_Changes(box):
+    mkdir(f"boxdata/{box}")
     if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
@@ -46,6 +47,7 @@ def User_Password_Changes(box):
 
 
 def files_to_backup(box):
+    mkdir(f"boxdata/{box}")
     if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
@@ -124,16 +126,25 @@ def change_sysctl_settings(box):
 
 
 def run_single_command(box):
+    mkdir(f"boxdata/{box}")
     global auxiliary
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
         default_password =data["global"]["default_password"]
     if auxiliary == None: auxiliary = input("cmd: ")
-    run_ssh_command(box, default_password, auxiliary)
+    writetofile = run_ssh_command(box, default_password, auxiliary,False)
+    with open(f"boxdata/{box}/singlecommandoutput.txt","a") as output:
+        output.write(f"[{timestamp}] Box: {box}\n")
+        output.write(f"Command: {auxiliary}\n")
+        output.write(writetofile)
+    print(writetofile)
 
 def execute_BashScript(box):
+    mkdir(f"boxdata/{box}")
     global auxiliary
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
@@ -144,14 +155,20 @@ def execute_BashScript(box):
             script_content = bash_script.read()
         if "$BASH_SOURCE" in script_content:
             remoteName = hashlib.md5(script_content.encode()).hexdigest() + '.sh'
-            run_ssh_command(box, default_password, f'cat > /tmp/{remoteName} && bash /tmp/{remoteName} && rm -v /tmp/{remoteName}',stdinText=script_content)
+            writetofile = run_ssh_command(box, default_password, f'cat > /tmp/{remoteName} && bash /tmp/{remoteName} && rm -v /tmp/{remoteName}',False,stdinText=script_content)
         else:
-            run_ssh_command(box, default_password, f'bash',stdinText=script_content)
+            writetofile = run_ssh_command(box, default_password, f'bash',False,stdinText=script_content)
+        with open(f"boxdata/{box}/bashscriptoutput.txt","a") as output:
+            output.write(f"[{timestamp}] Box: {box}\n")
+            output.write(f"Command: {auxiliary}\n")
+            output.write(writetofile)
+        print(writetofile)
 
     except Exception as e:
         print(f"Error: {e}")
 
 def Remove_All_Admin_Users(box):
+    mkdir(f"boxdata/{box}")
     if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
