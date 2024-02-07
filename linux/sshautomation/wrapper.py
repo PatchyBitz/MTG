@@ -2,7 +2,7 @@
 import subprocess;
 import time;
 from datetime import datetime
-def run_ssh_command(host,password, cmd, print_output=True):
+def run_ssh_command(host,password, cmd, print_output=True,stdinText=""):
     try:
         # Check if paramiko is installed
         try:
@@ -11,14 +11,15 @@ def run_ssh_command(host,password, cmd, print_output=True):
         except ImportError:
             use_paramiko = False
 
-        if use_paramiko:
+        if False:
             # Use paramiko for SSH connection
             ssh = paramiko.SSHClient()
             ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             # Assuming you have key-based authentication, you might need to modify this part if using passwords
             ssh.connect(host,username="root",password=password)
             stdin, stdout, stderr = ssh.exec_command(cmd)
-
+            stdin.write(stdinText)
+            stdin.flush()          
             # Capture the output
             output = stdout.read().decode('utf-8')
 
@@ -41,14 +42,15 @@ def run_ssh_command(host,password, cmd, print_output=True):
         else:
             # Use subprocess to run the SSH command
             process = subprocess.Popen(
-                ["sshpass", "-p", password, "ssh", host,"-l","root", cmd],
+                ["sshpass", "-p", password, "ssh","-o","StrictHostKeyChecking=no", host,"-l","root", cmd],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                stdin=subprocess.PIPE,
                 universal_newlines=True  # For Python 3.6 and earlier
             )
 
             # Capture the output and errors
-            stdout, stderr = process.communicate()
+            stdout, stderr = process.communicate(stdinText)
 
             # Print or return the output
             output = stdout
@@ -66,7 +68,7 @@ def run_ssh_command(host,password, cmd, print_output=True):
                 print(stderr)
 
     except Exception as e:
-        print(f"Error: {e}")
+       print(f"Error: {e}")
 
 def push_to_scp(host, cmd, file, path):
     try:
@@ -82,7 +84,8 @@ def push_to_scp(host, cmd, file, path):
 
         # Capture the output and errors
         stdout, stderr = process.communicate()
-
+        if(process.returncode != 0):
+            raise Exception(f"Process exited with return code {process.returncode}")
         # Print the output
         print("Output:")
         print(stdout)
@@ -94,30 +97,27 @@ def push_to_scp(host, cmd, file, path):
 
     except Exception as e:
         print(f"Error: {e}")
+        return -1
 
 
 import subprocess
 
 def pull_from_scp(host, remote_file, local_path):
     try:
-        # Use subprocess to run the SCP command for pulling
         scp_command = f"scp {host}:{remote_file} {local_path}"
         process = subprocess.Popen(
             scp_command,
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True  # For Python 3.7 and later
+            text=True  
         )
 
-        # Capture the output and errors
         stdout, stderr = process.communicate()
 
-        # Print the output
         print("Output:")
         print(stdout)
 
-        # Print any errors
         if stderr:
             print("Errors:")
             print(stderr)

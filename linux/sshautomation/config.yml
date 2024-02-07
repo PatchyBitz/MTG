@@ -1,3 +1,6 @@
+global:
+  default_password: "Password1!"
+  unrestricted_subnet: "10.128.XXX.0/24"
 files_to_backup:
   - "/etc/shadow"
   - "/etc/passwd"
@@ -9,7 +12,6 @@ files_to_fix_permissions:
   - "/etc/gshadow"
   - "/etc/group"
   - "/usr/bin/pkexec"
-
 #Might have to enumerate cuz of packages changes
 packages_to_install:
   - "auditd"
