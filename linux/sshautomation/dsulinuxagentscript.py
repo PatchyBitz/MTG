@@ -98,7 +98,10 @@ def change_SSH_Settings(box):
 
 
 def modify_php_settings(box):
-    default_password = passwordFunc(seed+box+"root")
+    if(os.path.isfile('boxdata/{box}/changedpassword')):
+        default_password  = genPassword(seed + box + "root",rounds)
+    else:
+        default_password =data["global"]["default_password"]
     php_settings = '\n'.join(f'{setting} = {value}' for setting, value in data.get('php_settings',{}).items()) + '\n'
     for php_ini in glob("/**/php.ini", recursive=True):
         php_ini_content  = run_ssh_command(box,default_password,f"cat '{php_ini}'")
@@ -106,7 +109,10 @@ def modify_php_settings(box):
         run_ssh_command(box, default_password, f"cat > '{php_ini}'", stdinText= php_ini_content)
 
 def change_sysctl_settings(box):
-    default_password = passwordFunc(seed+box+"root")
+    if(os.path.isfile('boxdata/{box}/changedpassword')):
+        default_password  = genPassword(seed + box + "root",rounds)
+    else:
+        default_password =data["global"]["default_password"]
     sysctl_conf  = '\n'.join(f'{setting} = {value}' for setting, value in data.get('sysctl_settings',{}).items()) + '\n'
     sysctl_conf += run_ssh_command(box,default_password,"cat /etc/sysctl.conf",False)
     run_ssh_command(box,default_password,"cat > /etc/sysctl.conf", stdinText=sysctl_conf)
@@ -121,17 +127,26 @@ def run_single_command(box,cmd):
     run_ssh_command(box,default_password,cmd)
 
 def execute_BashScript(script, box):
-    default_password = boxes[box][0]
+    if(os.path.isfile('boxdata/{box}/changedpassword')):
+        default_password  = genPassword(seed + box + "root",rounds)
+    else:
+        default_password =data["global"]["default_password"]
     try:
         with open(script, 'r') as bash_script:
             script_content = bash_script.read()
 
             run_ssh_command(box,default_password,script)
-
-
-
     except Exception as e:
         print(f"Error: {e}")
+
+def Remove_All_Admin_Users(box):
+    if(os.path.isfile('boxdata/{box}/changedpassword')):
+        default_password  = genPassword(seed + box + "root",rounds)
+    else:
+        default_password =data["global"]["default_password"]
+    command='for group in sudo admin; do for user in $(getent group $group | cut -d: -f4 | tr ',' ' '); do [[ $user != "root" ]] && sudo deluser $user $group; done; done'
+    run_ssh_command(box,default_password,command)
+
 def enumerate(box):
     #WIP
     print("enum")
@@ -142,7 +157,7 @@ def fix_pam(box):
 
 
 
-functions = [audit_Users,Root_Password_Changes,User_Password_Changes,files_to_backup,firewall_stuff,execute_BashScript,change_SSH_Settings,modify_php_settings,change_sysctl_settings,run_single_command]
+functions = [audit_Users,Root_Password_Changes,User_Password_Changes,files_to_backup,firewall_stuff,execute_BashScript,change_SSH_Settings,modify_php_settings,change_sysctl_settings,run_single_command,Remove_All_Admin_Users]
 def exec_function(function_number):
      for line in open("boxes.conf"):
         if "#" not in line:
@@ -173,9 +188,10 @@ def main():
         print("8. Modify PHP Settings")
         print("9. Change Sysctl Settings")
         print("10. Run Single Command")
+        print("11. Remove all Admin Users")
         print("0. Exit")
         option = input("Enter the option number: ")
-        if(int(option) > 0 and int(option) <= 10):
+        if(int(option) > 0 and int(option) <= 11):
             exec_function(int(option)-1)
         elif(int(option)==0):
             break
