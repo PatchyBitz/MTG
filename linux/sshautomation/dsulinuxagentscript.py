@@ -12,6 +12,8 @@ config_path = 'config.yml'
 # passwordFunc = lambda x: 'default'
 seed="TotallySecureSeed1"
 rounds=1000
+auxiliary = None
+
 with open(config_path, 'r') as file:
         data = yaml.safe_load(file)
 def mkdir(path):
@@ -122,22 +124,26 @@ def change_sysctl_settings(box):
 
 
 def run_single_command(box):
+    global auxiliary
     if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
         default_password =data["global"]["default_password"]
-    run_ssh_command(box, default_password, input("cmd: "))
+    if auxiliary == None: auxiliary = input("cmd: ")
+    run_ssh_command(box, default_password, auxiliary)
 
 def execute_BashScript(box):
+    global auxiliary
     if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
         default_password =data["global"]["default_password"]
     try:
-        with open(input("Script Path: "), 'r') as bash_script:
+        if auxiliary == None: auxiliary = input("Script Path: ")
+        with open(auxiliary, 'r') as bash_script:
             script_content = bash_script.read()
         if "$BASH_SOURCE" in script_content:
-            remoteName = hashlib.md5(script_content).hexdigest() + '.sh'
+            remoteName = hashlib.md5(script_content.encode()).hexdigest() + '.sh'
             run_ssh_command(box, default_password, f'cat > /tmp/{remoteName} && bash /tmp/{remoteName} && rm -v /tmp/{remoteName}',stdinText=script_content)
         else:
             run_ssh_command(box, default_password, f'bash',stdinText=script_content)
@@ -165,6 +171,8 @@ def fix_pam(box):
 
 functions = [audit_Users,Root_Password_Changes,User_Password_Changes,files_to_backup,firewall_stuff,execute_BashScript,change_SSH_Settings,modify_php_settings,change_sysctl_settings,run_single_command,Remove_All_Admin_Users]
 def exec_function(function_number):
+     global auxiliary
+     auxiliary = None
      for line in open("boxes.conf"):
         if "#" not in line:
             ip_address = line.strip()
