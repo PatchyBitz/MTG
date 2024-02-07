@@ -5,10 +5,11 @@ from datetime import datetime
 import utils.iptables as iptables
 from utils.passgen import genPassword
 from getpass import getpass
-from glob import glob
+import hashlib
+
 boxes = {}
 config_path = 'config.yml'
-passwordFunc = lambda x: 'default'
+# passwordFunc = lambda x: 'default'
 seed="TotallySecureSeed1"
 rounds=1000
 with open(config_path, 'r') as file:
@@ -19,19 +20,19 @@ def mkdir(path):
 
 def Root_Password_Changes(box):
     mkdir(f"boxdata/{box}")
-    if(os.path.isfile('boxdata/{box}/changedpassword')):
-        root_password = genPassword(seed + box + "root",rounds)
+    if(os.path.isfile(f'boxdata/{box}/changedpassword')):
+        default_password = genPassword(seed + box + "root",rounds)
+        root_password = default_password
     else:
-        root_password=data["global"]["default_password"]
-    default_password = passwordFunc(seed+box+"root")
+        default_password = data["global"]["default_password"]
+        root_password = genPassword(seed + box + "root",rounds)
+
     command = f'root:{root_password}\n'
     if(run_ssh_command(box,default_password,"chpasswd",stdinText=command) != -1):
         open(f"boxdata/{box}/changedpassword", "w").close()
-    
-
 
 def User_Password_Changes(box):
-    if(os.path.isfile('boxdata/{box}/changedpassword')):
+    if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
         default_password =data["global"]["default_password"]
@@ -43,7 +44,7 @@ def User_Password_Changes(box):
 
 
 def files_to_backup(box):
-    if(os.path.isfile('boxdata/{box}/changedpassword')):
+    if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
         default_password =data["global"]["default_password"]
@@ -54,7 +55,7 @@ def files_to_backup(box):
 
 
 def firewall_stuff(box):
-     if(os.path.isfile('boxdata/{box}/changedpassword')):
+     if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
      else:
         default_password =data["global"]["default_password"]
@@ -69,7 +70,7 @@ def firewall_stuff(box):
 
 
 def audit_Users(box):
-    if(os.path.isfile('boxdata/{box}/changedpassword')):
+    if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
         default_password =data["global"]["default_password"]
@@ -89,7 +90,7 @@ def change_SSH_Settings(box):
         "PermitEmptyPasswords no",
         "AddressFamily inet"
     ]
-    if(os.path.isfile('boxdata/{box}/changedpassword')):
+    if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
         default_password =data["global"]["default_password"]
@@ -98,18 +99,19 @@ def change_SSH_Settings(box):
 
 
 def modify_php_settings(box):
-    if(os.path.isfile('boxdata/{box}/changedpassword')):
+    if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
         default_password =data["global"]["default_password"]
     php_settings = '\n'.join(f'{setting} = {value}' for setting, value in data.get('php_settings',{}).items()) + '\n'
-    for php_ini in glob("/**/php.ini", recursive=True):
+    php_ini_list = run_ssh_command(box, default_password, "find / -name 'php.ini' 2> /dev/null", print_output=False).split('\n')[:-1]
+    for php_ini in php_ini_list:
         php_ini_content  = run_ssh_command(box,default_password,f"cat '{php_ini}'")
         php_ini_content += php_settings
         run_ssh_command(box, default_password, f"cat > '{php_ini}'", stdinText= php_ini_content)
 
 def change_sysctl_settings(box):
-    if(os.path.isfile('boxdata/{box}/changedpassword')):
+    if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
         default_password =data["global"]["default_password"]
@@ -119,32 +121,36 @@ def change_sysctl_settings(box):
 
 
 
-def run_single_command(box,cmd):
-    if(os.path.isfile('boxdata/{box}/changedpassword')):
+def run_single_command(box):
+    if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
         default_password =data["global"]["default_password"]
-    run_ssh_command(box,default_password,cmd)
+    run_ssh_command(box, default_password, input("cmd: "))
 
-def execute_BashScript(script, box):
-    if(os.path.isfile('boxdata/{box}/changedpassword')):
+def execute_BashScript(box):
+    if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
         default_password =data["global"]["default_password"]
     try:
-        with open(script, 'r') as bash_script:
+        with open(input("Script Path: "), 'r') as bash_script:
             script_content = bash_script.read()
+        if "$BASH_SOURCE" in script_content:
+            remoteName = hashlib.md5(script_content).hexdigest() + '.sh'
+            run_ssh_command(box, default_password, f'cat > /tmp/{remoteName} && bash /tmp/{remoteName} && rm -v /tmp/{remoteName}',stdinText=script_content)
+        else:
+            run_ssh_command(box, default_password, f'bash',stdinText=script_content)
 
-            run_ssh_command(box,default_password,script)
     except Exception as e:
         print(f"Error: {e}")
 
 def Remove_All_Admin_Users(box):
-    if(os.path.isfile('boxdata/{box}/changedpassword')):
+    if(os.path.isfile(f'boxdata/{box}/changedpassword')):
         default_password  = genPassword(seed + box + "root",rounds)
     else:
         default_password =data["global"]["default_password"]
-    command='for group in sudo admin; do for user in $(getent group $group | cut -d: -f4 | tr ',' ' '); do [[ $user != "root" ]] && sudo deluser $user $group; done; done'
+    command='''for group in sudo admin; do for user in $(getent group $group | cut -d: -f4 | tr ',' ' '); do [[ $user != "root" ]] && sudo deluser $user $group; done; done'''
     run_ssh_command(box,default_password,command)
 
 def enumerate(box):
@@ -162,20 +168,20 @@ def exec_function(function_number):
      for line in open("boxes.conf"):
         if "#" not in line:
             ip_address = line.strip()
-            root_password = passwordFunc(ip_address + "root")
-            boxes[ip_address]=(root_password)
+            # root_password = passwordFunc(ip_address + "root")
+            # boxes[ip_address]=(root_password)
             functions[function_number](ip_address)
 
 
 
 def main():
-    global passwordFunc
+    global seed
     seed = getpass("seed: ")
-    if input("Use seed? ") == 'y':
-            passwordFunc = lambda x: genPassword(x,rounds)
-    else:
+    # if input("Use seed? ") == 'y':
+    #         passwordFunc = lambda x: genPassword(x,rounds)
+    # else:
             
-            passwordFunc = lambda x: data['global']['default_password']
+    #         passwordFunc = lambda x: data['global']['default_password']
     while(True):
         print("\nSelect an option:")
         print("1. Audit Users")
