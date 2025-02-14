@@ -244,8 +244,8 @@ class XorshiftGenerator {
     downloadLink.download = userListFileName.value;
     downloadLink.href = "data:text/plain," + encodeURIComponent(await table2delim(
       await passwordsFromUserList(),
-      ',',
-      '\n'
+      decodeURIComponent(userListItemDelimiterInput.value || ','), // Changed to match other functions, easier to generate files with proper delimiters. 
+      decodeURIComponent(userListRecordDelimiterInput.value || '\n')
     ));
     downloadLink.click();
   });
